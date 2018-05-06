@@ -1,0 +1,235 @@
+---
+title: "Reproducible Research: Peer Assessment 1"
+author: "Laura Elena Segura"
+output: 
+  html_document:
+    keep_md: true
+---
+
+
+## Loading and preprocessing the data
+
+First, we import the libraries that will be used and set the working directory. We will use the following libraries:
+
+* Lubridate
+* Dplyr
+* Reshape2
+* Xtable
+* Ggplot2
+
+```{r loading libraries,echo=FALSE,results="hide"}
+setwd("/home/laura/Documents/Data_Science_Coursera/5_Reproducibility/Course_Project_1/RepData_PeerAssessment1")
+
+library("lubridate")
+library("dplyr")
+library("reshape2")
+library("ggplot2")
+library("xtable")
+```
+Then we import the data
+```{r loading data,echo=TRUE}
+
+activity <- read.csv("activity.csv")
+
+```
+
+## What is the mean and median of the total number of steps taken per day?
+
+In order to know the mean and median per day we divide the steps per day. But first we create new variables (month and day) by using the lubridate package which makes it easier to work with dates:
+
+```{r mean per day 1, echo=TRUE}
+
+activity <- mutate(activity, date = ymd(activity$date))
+activity <- mutate(activity, month = month(activity$date))
+activity <- mutate(activity, day = day(activity$date))
+activity <- transform(activity,month=factor(month,levels = 10:11,labels = c("October","November")))
+```
+
+Now, let's calculate the daily mean and median using the recast function:
+```{r mean per day 2, echo=TRUE}
+
+mean_per_day<- recast(activity,month+day~variable,mean,id.var=c("date","month","day"),measure.var = c("steps"),na.rm=TRUE)
+
+median_per_day<- recast(activity,month+day~variable,median,id.var=c("date","month","day"),measure.var = c("steps"),na.rm=TRUE,fill=0)
+
+sum_per_day<- recast(activity,month+day~variable,sum,id.var=c("date","month","day"),measure.var=c("steps"),na.rm=TRUE)
+
+# We could also have done this in two steps:
+# A1 <- melt(activity,id=c("month","day"),measure.vars = c("steps"))
+# A2 <- cast(activity,month+day~variable,mean)
+
+table1 <- cbind(mean_per_day,median_per_day[,3],sum_per_day[,3])
+names(table1) <- c("Month","Day","Mean","Median","Sum")
+print(table1,type="html")
+```
+Then, we make a histogram of steps by day and month. We can observe that there
+is not a clear pattern in the number of steps between October and November.
+
+```{r histo 1,echo=TRUE}
+
+p<-ggplot(activity,aes(x=factor(day),y=steps))+geom_bar(stat="identity",fill="red")+facet_grid(month~.,space="free")+ylab("Number of Steps")+xlab("Day")+ggtitle("Number of Steps per Day")+ 
+       theme(strip.text.x = element_text(size = 10, colour = "black", face = "bold"))
+
+print(p)
+
+```
+
+
+## What is the average daily activity pattern?
+
+In order to know the average daily activity pattern, we calculate
+the mean of steps every 5 minutes averaged over the total number of days (61). We can do this by using the recast function again but with 
+interval instead of month and day:
+
+```{r mean per minute,echo=TRUE}
+mean_per_five_minute<- recast(activity,interval~variable,mean,id.var=c("interval"),measure.var = c("steps"),na.rm=TRUE)
+
+```
+
+We calculate the median as well:
+
+```{r median per minute} 
+median_per_five_minute<- recast(activity,interval~variable,median,id.var=c("interval"),measure.var = c("steps"),na.rm=TRUE,fill=0)
+```
+
+
+```{r time vector, echo=FALSE,results="hide"}
+
+# d1 <- activity$date[1]
+# vec_time <- d1 + minutes(seq(5,1440,5))
+# mean_per_five_minute<- cbind(vec_time,mean_per_five_minute)
+```
+
+The time series plot would be:
+
+```{r plot timeseries 1, echo=TRUE}
+breaks_x <- seq(0,2400,200)
+breaks_x_lab <- paste0(seq(0,24,2),":00")
+p <- ggplot(data=mean_per_five_minute, aes(x=interval,y=steps))+
+  geom_line(colour="red")+xlab("Hour")+ylab("Mean of Steps")+ggtitle("Mean of Steps Averaged over 61 days (Oct-Nov 2010)")+
+  scale_x_continuous(name="Hour", breaks=breaks_x, labels=breaks_x_lab,limits = c(0,2400))
+
+print(p)
+
+```
+
+As we can see, the interval between 8:00 and 9:00 has the maximun number of steps followed by peaks at 12:00, 15:00 and at 19:00 hours. The plot of the median confirms that there are clear peaks at 8:00 and 19:00:
+
+```{r plot timeseries 2, echo=TRUE}
+p <- ggplot(data=median_per_five_minute, aes(x=interval,y=steps))+
+  geom_line(colour="red")+xlab("Hour")+ylab("Median of Steps")+ggtitle("Median of Steps calculated over 61 days (Oct-Nov 2010)")+
+  scale_x_continuous(name="Hour", breaks=breaks_x, labels=breaks_x_lab,limits = c(0,2400))
+
+print(p)
+
+```
+
+
+## Imputing missing values
+
+```{r missing 1,echo=FALSE,results="hide"}
+id_nan <- which(is.na(activity$steps))
+leni <- length(id_nan)
+```
+The dataset that we are working on has `r leni` missing values. 
+What occurs if we fill these values with some data? We can estimate the missing values as the 5-minute average of steps over the 61 days. 
+First we find the index of missing values of steps and the intervals.
+Then, find where are those intervals in the ``mean_per_five_minute`` matrix:
+
+```{r missing 2, echo=TRUE}
+id_nan <- which(is.na(activity$steps)) # Index of missing values
+
+missing_interv <- activity$interval[id_nan] # The actual intervals
+
+interv <- mean_per_five_minute$interval
+
+missing_interv_a <- as.array(missing_interv)  # As array to apply "apply"
+
+index <- apply(missing_interv_a,1,function(x) which(interv==x))
+
+approximate_steps_1 <- mean_per_five_minute$steps[index]
+
+```
+Finally, we copied the ``approximate_steps_1`` into the new dataset:
+
+```{r missing 3}
+activity_filled <- activity
+
+activity_filled$steps[id_nan] <- approximate_steps_1
+```
+
+Let's look at the histogram again. We can observed that the histogram with
+the largest changes corresponds to November since was the month with more
+missing values.
+
+```{r histo 2}
+p<-ggplot(activity_filled,aes(x=factor(day),y=steps))+geom_bar(stat="identity",fill="red")+facet_grid(month~.,space="free")+ylab("Number of Steps")+xlab("Day")+ggtitle("Number of Steps per Day")+ 
+       theme(strip.text.x = element_text(size = 10, colour = "black", face = "bold"))
+
+print(p)
+
+```
+
+
+
+Now let's look at the change in the daily mean and median values:
+
+```{r mean per day filled, echo=TRUE}
+
+mean_per_day_filled<- recast(activity_filled,month+day~variable,mean,id.var=c("date","month","day"),measure.var = c("steps"),na.rm=TRUE)
+
+median_per_day_filled<- recast(activity_filled,month+day~variable,median,id.var=c("date","month","day"),measure.var = c("steps"),na.rm=TRUE,fill=0)
+```
+
+We can observed in the next figure (filled data dashed line,
+non-filled solid line) datathat the effect to fill data in the
+daily mean and median is basically to fill the gap in the plots.
+
+```{r compare mean and median,echo=TRUE}
+x <- seq(1,61,1)
+plot(x,mean_per_day$steps,type="l",col="black",lty=1,ylab="Mean",xlab="Days  (starting on Oct 1, 2010)",main="Daily Mean and Median of Steps Averaged Every 5 Minutes ")
+lines(x,mean_per_day_filled$steps,col="black",lty=2)
+lines(x,median_per_day$steps,col="red",lty=1)
+lines(x,median_per_day_filled$steps,col="red",lty=2)
+
+grid(nx = NULL, ny = NULL, col = "lightgray", lty = "dotted",
+     lwd = par("lwd"), equilogs = TRUE)
+
+legend("topright", c("Mean","Median"),lty=c(1,1), col=c("black","red"),horiz = TRUE)
+```
+
+## Are there differences in activity patterns between weekdays and weekends?
+
+In order to answer this question we calculate a new variable using the 
+function ``weekdays()`` from the lubridate library and then create
+two datasets, one for weekdays and other for weekends:
+
+```{r weekdays 1, echo=TRUE}
+
+activity_filled <- mutate(activity_filled,weekday=wday(activity_filled$date))
+activity_filled$weekday[which(activity_filled$weekday==1)]=8 # Change 7 for 8
+
+activity_week <- filter(activity_filled,weekday<7)
+activity_weekend<- filter(activity_filled,weekday>6)
+```
+
+Now, we calculate the 5-minute averages for the two datasets:
+
+```{r weekdays 2,echo=TRUE}
+mean_WEEK<- recast(activity_week,interval~variable,mean,id.var=c("interval"),measure.var = c("steps"),na.rm=TRUE)
+
+mean_WEEKEND<- recast(activity_weekend,interval~variable,mean,id.var=c("interval"),measure.var = c("steps"),na.rm=TRUE)
+
+mean_WEEK <- mutate(mean_WEEK,type_day="WEEK")
+mean_WEEKEND <- mutate(mean_WEEKEND,type_day="WEEKEND")
+
+mean_TOTAL <- rbind(mean_WEEK,mean_WEEKEND)
+```
+As we observed in the following plot, there are differences between the means of steps performed during week days and weekend days. We can see that during week days, there is a clear maximun of steps around 8 and 9 am which is probably because of the commuting to work. During the weekend days, there is
+still a peak around 8 and 9 am but less pronounced and more similar to the other peaks. Thus, the person who recorded this dataset walked much more during the mornings of week days than during the weekends probably because of her/his job.
+
+```{r weekdays 3,echo=TRUE}
+p<-ggplot(mean_TOTAL,aes(x=interval,y=steps))+geom_line(colour="red")+facet_grid(type_day~.,space="free")+ylab("Mean of Steps")+xlab("Hour")+ggtitle("Mean of Steps Averaged over Weekdays and Weekends")+theme(strip.text.x = element_text(size = 10, colour = "black", face = "bold"))+
+  scale_x_continuous(name="Hour", breaks=breaks_x, labels=breaks_x_lab,limits = c(0,2400))
+print(p)
+```
