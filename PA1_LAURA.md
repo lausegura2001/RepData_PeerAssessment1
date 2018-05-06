@@ -262,7 +262,7 @@ p<-ggplot(activity_filled,aes(x=factor(day),y=steps))+geom_bar(stat="identity",f
 print(p)
 ```
 
-![](PA1_LAURA_files/figure-html/histo%20-1.png)<!-- -->
+![](PA1_LAURA_files/figure-html/histo%202-1.png)<!-- -->
 
 
 
