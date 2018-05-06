@@ -166,7 +166,7 @@ print(p)
 ## Warning: Removed 2304 rows containing missing values (position_stack).
 ```
 
-![](PA1_LAURA_files/figure-html/histo 1-1.png)<!-- -->
+![](PA1_LAURA_files/figure-html/histo 1-1.png?raw=true)<!-- -->
 
 
 ## What is the average daily activity pattern?
