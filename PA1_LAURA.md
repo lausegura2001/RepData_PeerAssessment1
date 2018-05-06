@@ -203,7 +203,7 @@ p <- ggplot(data=mean_per_five_minute, aes(x=interval,y=steps))+
 print(p)
 ```
 
-![](PA1_LAURA_files/figure-html/plot timeseries 1-1.png)<!-- -->
+![](PA1_LAURA_files/figure-html/plot%20timeseries%201-1.png)<!-- -->
 
 As we can see, the interval between 8:00 and 9:00 has the maximun number of steps followed by peaks at 12:00, 15:00 and at 19:00 hours. The plot of the median confirms that there are clear peaks at 8:00 and 19:00:
 
@@ -216,7 +216,7 @@ p <- ggplot(data=median_per_five_minute, aes(x=interval,y=steps))+
 print(p)
 ```
 
-![](PA1_LAURA_files/figure-html/plot timeseries 2-1.png)<!-- -->
+![](PA1_LAURA_files/figure-html/plot%20timeseries%202-1.png)<!-- -->
 
 
 ## Imputing missing values
@@ -262,7 +262,7 @@ p<-ggplot(activity_filled,aes(x=factor(day),y=steps))+geom_bar(stat="identity",f
 print(p)
 ```
 
-![](PA1_LAURA_files/figure-html/histo 2-1.png)<!-- -->
+![](PA1_LAURA_files/figure-html/histo%20-1.png)<!-- -->
 
 
 
@@ -293,7 +293,7 @@ grid(nx = NULL, ny = NULL, col = "lightgray", lty = "dotted",
 legend("topright", c("Mean","Median"),lty=c(1,1), col=c("black","red"),horiz = TRUE)
 ```
 
-![](PA1_LAURA_files/figure-html/compare mean and median-1.png)<!-- -->
+![](PA1_LAURA_files/figure-html/compare%20mean%20and%20median-1.png)<!-- -->
 
 ## Are there differences in activity patterns between weekdays and weekends?
 
@@ -333,4 +333,4 @@ p<-ggplot(mean_TOTAL,aes(x=interval,y=steps))+geom_line(colour="red")+facet_grid
 print(p)
 ```
 
-![](PA1_LAURA_files/figure-html/weekdays 3-1.png)<!-- -->
+![](PA1_LAURA_files/figure-html/weekdays%203-1.png)<!-- -->
